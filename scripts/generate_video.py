@@ -211,8 +211,6 @@ def create_task(
     payload: dict = {
         "model": model,
         "prompt": prompt,
-        "duration": duration,
-        "fps": fps,
     }
 
     # Only send width/height for non-adaptive, non-metadata paths.
@@ -227,6 +225,8 @@ def create_task(
             "resolution": resolution,
             "ratio": aspect_ratio,
             "generate_audio": generate_audio,
+            "duration": duration,
+            "fps": fps,
         }
         if seed is not None:
             payload["metadata"]["seed"] = seed
@@ -243,17 +243,19 @@ def create_task(
             payload["image"] = image
         if seed is not None:
             payload["seed"] = seed
-        # These params must passthrough metadata even for text-only videos
-        if not generate_audio or return_last_frame or camera_fixed or watermark:
-            payload["metadata"] = {}
-            if not generate_audio:
-                payload["metadata"]["generate_audio"] = False
-            if return_last_frame:
-                payload["metadata"]["return_last_frame"] = True
-            if camera_fixed:
-                payload["metadata"]["camera_fixed"] = True
-            if watermark:
-                payload["metadata"]["watermark"] = True
+        # Pass duration/fps through metadata for all requests
+        payload["metadata"] = {
+            "duration": duration,
+            "fps": fps,
+        }
+        if not generate_audio:
+            payload["metadata"]["generate_audio"] = False
+        if return_last_frame:
+            payload["metadata"]["return_last_frame"] = True
+        if camera_fixed:
+            payload["metadata"]["camera_fixed"] = True
+        if watermark:
+            payload["metadata"]["watermark"] = True
 
     return _api_request("POST", "/v1/video/generations", api_key, payload)
 
