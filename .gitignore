@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Secrets & env
+.env
+.env.*
+*.key
+*.pem
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+CLAUDE.md
