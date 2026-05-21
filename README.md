@@ -26,22 +26,31 @@ export GPT_IMAGE_API_KEY="your-key-here"
 
 ```bash
 # Text-to-video
-python scripts/generate_video.py "a cat playing piano in a cozy jazz club"
+python scripts/generate_video.py \
+  "a cat playing piano in a cozy jazz club"
 
 # Image-to-video
-python scripts/generate_video.py "slow zoom out, cinematic" --image https://example.com/photo.jpg
+python scripts/generate_video.py \
+  "slow zoom out, cinematic" \
+  --image https://example.com/photo.jpg
 
 # High quality, longer duration
-python scripts/generate_video.py "a serene mountain lake at dawn" \
-  --model seedance-2-0 --duration 10 --resolution 1080p --aspect-ratio 16:9
+python scripts/generate_video.py \
+  "a serene mountain lake at dawn" \
+  --model seedance-2-0 \
+  --duration 10 \
+  --resolution 1080p \
+  --aspect-ratio 16:9
 
 # Just get the URL without downloading
-python scripts/generate_video.py "a cyberpunk city" --no-download
+python scripts/generate_video.py \
+  "a cyberpunk city" \
+  --no-download
 ```
 
 ## Files
 
 - `scripts/generate_video.py` — Main video generation script
+- `scripts/check_tasks.py` — Batch task query
 - `SKILL.md` — Skill entrypoint for Claude Code
-- `CLAUDE.md` — Developer guide for Claude Code
 - `references/seedance-2-0.md` — Full API reference
