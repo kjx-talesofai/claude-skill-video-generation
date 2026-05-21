@@ -34,10 +34,8 @@
 | `model` | string | Yes | Model ID: `seedance-2-0-fast` or `seedance-2-0` |
 | `prompt` | string | Yes | Text description of the desired video. |
 | `image` | string | No | URL or base64 of a reference image for image-to-video. |
-| `duration` | integer | No | Video length in seconds. Seedance 2.0 series: [4, 15]. Default: 5 |
 | `width` | integer | No | Video width in pixels. |
 | `height` | integer | No | Video height in pixels. |
-| `fps` | integer | No | Frames per second. Default: 30 |
 | `seed` | integer | No | Random seed for reproducibility. |
 | `n` | integer | No | Number of videos to generate. Default: 1 |
 | `user` | string | No | User identifier for tracking. |
@@ -49,6 +47,8 @@ The new-api router forwards the entire `metadata` object to BytePlus ModelArk. T
 
 | Parameter | Values | Description |
 |---|---|---|
+| `metadata.duration` | integer | Video length in seconds. Seedance 2.0 series: [4, 15]. Default: 5 |
+| `metadata.fps` | integer | Frames per second. Default: 30 |
 | `metadata.content` | array | Full `content` array with text, images, videos, audio |
 | `metadata.resolution` | `480p`, `720p`, `1080p`, `2K` | Output resolution |
 | `metadata.ratio` | `16:9`, `9:16`, `1:1`, `4:3`, `3:4`, `21:9`, `adaptive` | Aspect ratio |
@@ -129,10 +129,12 @@ POST https://new-api.talesofai.com/v1/video/generations
 {
   "model": "seedance-2-0-fast",
   "prompt": "a cat playing piano in a cozy jazz club",
-  "duration": 5,
   "width": 1280,
   "height": 720,
-  "fps": 30
+  "metadata": {
+    "duration": 5,
+    "fps": 30
+  }
 }
 ```
 
