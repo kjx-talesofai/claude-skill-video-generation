@@ -243,13 +243,12 @@ def create_task(
             payload["image"] = image
         if seed is not None:
             payload["seed"] = seed
-        # Pass duration/fps through metadata for all requests
+        # Pass duration/fps/audio through metadata for all requests
         payload["metadata"] = {
             "duration": duration,
             "fps": fps,
+            "generate_audio": generate_audio,
         }
-        if not generate_audio:
-            payload["metadata"]["generate_audio"] = False
         if return_last_frame:
             payload["metadata"]["return_last_frame"] = True
         if camera_fixed:
