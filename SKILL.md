@@ -1,6 +1,6 @@
 ---
 name: video-generation
-description: Generate videos using Seedance 2.0 via proxy API endpoints. Trigger when the user says "seedance", "generate video", "create video", "make a video", "video generation", or any request to generate, create, or make videos.
+description: Generate videos using Seedance 2.0. Triggers: generate video, create video, make video.
 ---
 
 # Video Generation
