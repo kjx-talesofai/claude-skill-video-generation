@@ -1,6 +1,6 @@
 ---
 name: video-generation
-description: Generate videos using Seedance 2.0. Triggers: generate video, create video, make video.
+description: "Generate videos using Seedance 2.0. Triggers: generate video, create video, make video."
 ---
 
 # Video Generation
