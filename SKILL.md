@@ -110,6 +110,49 @@ python scripts/check_tasks.py task_xxx task_yyy task_zzz
 python scripts/check_tasks.py task_xxx task_yyy --poll --download --output-dir ./videos
 ```
 
+## Execution Model & Expectations
+
+Video generation is **asynchronous**: submit a task, receive a `task_id`, then poll until completion.
+
+| Factor | Typical Range |
+|---|---|
+| Submit-to-start | seconds to minutes (queue depth varies) |
+| Generation time | scales with `--duration`; 5s ~ 3–8 min, 10s ~ 5–12 min, 15s ~ 8–18 min |
+| `--model seedance-2-0-fast` | faster than `seedance-2-0` |
+| `--submit-only` | returns immediately with `task_id`; poll later with `check_tasks.py` |
+
+The script blocks and polls by default. Use `--submit-only` when orchestrating multiple tasks externally.
+
+## Parallel Submission
+
+Submit up to **3 tasks concurrently** per account to minimize wall-clock time:
+
+```bash
+# Parallel submit (fire and forget)
+python scripts/generate_video.py "scene 1" --submit-only &
+python scripts/generate_video.py "scene 2" --submit-only &
+python scripts/generate_video.py "scene 3" --submit-only &
+wait
+# Then poll all together:
+python scripts/check_tasks.py task_xxx task_yyy task_zzz --poll --download
+```
+
+Additional tasks beyond 3 will queue or fail.
+
+## Retry Strategy
+
+Failures happen. Common causes and responses:
+
+| Error | Likely Cause | Retry Action |
+|---|---|---|
+| `HTTP 429` | Rate limited or concurrency exceeded | Wait 60 seconds, reduce parallel count, retry with same prompt |
+| `HTTP 500/503` | Server busy | Wait 60–120 seconds, retry with same prompt |
+| `timed out` | Upload or generation exceeded `--timeout` | Increase `--timeout` (e.g., `--timeout 300`), retry |
+| `InputImageSensitiveContentDetected` | Reference image flagged for face/IP | Use text-to-video (omit `--image`), or describe subjects as **"fan art of an original character"** / **"original anime-style character"** to clarify they are not real persons or protected IP. |
+| Task `failed` / `expired` | Internal error or timeout | Retry with same prompt. If persistent, try shorter `--duration` or `--model seedance-2-0-fast`. |
+
+**Always ask the user before retrying** — confirm whether to retry with the same prompt or modify it.
+
 ## Limitations & Best Practices
 
 ### Face and Privacy Content
@@ -119,32 +162,10 @@ Seedance 2.0 does not support reference images containing real human faces. AI-g
 - **`adaptive`** lets the model automatically select a ratio based on the input prompt or reference images. **Different inputs may produce different output ratios.** When stitching multiple segments together, use a fixed ratio (e.g., `16:9`) instead of `adaptive` to ensure consistent dimensions.
 - Supported ratios: `16:9`, `9:16`, `1:1`, `4:3`, `3:2`, `2:3`, `3:4`, `21:9`, `adaptive`.
 
-### Concurrency
-Submit no more than **3 tasks simultaneously** per account. Additional tasks will queue or fail.
-
 ### Large Image Uploads
 When passing local images with `--image`, the file is base64-encoded into the request payload. For files larger than ~1 MB, increase `--timeout` (e.g., `--timeout 300`) to avoid `The read operation timed out`.
 
 ### Segment Chaining Best Practice
 Seedance supports up to 15 seconds per segment. For a 30-second video, prefer **2 segments of 15 seconds** chained with `--return-last-frame` over many short segments. Fewer segments reduce overhead and improve consistency.
-
-## Cross-Skill Workflow: Image Generation → Video Generation
-
-When the workflow involves generating a reference image first (via the **image-generation** skill) and then animating it:
-
-1. **Generate the image** with Gemini Image: outputs a local file.
-2. **Pass the local file directly** to `generate_video.py --image`. The script auto-converts it to a data URI.
-
-```bash
-# Step 1: Generate image (image-generation skill)
-python image-generation/scripts/generate_gemini_image.py "a warrior standing in a dark forest" \
-  --aspect-ratio 16:9 --output warrior.png
-
-# Step 2: Animate it (video-generation skill)
-python video-generation/scripts/generate_video.py "slow camera pan across the warrior" \
-  --image ./warrior.png --model seedance-2-0 --duration 10
-```
-
-**Note:** `--first-frame`, `--last-frame`, and `--reference-image` only accept URLs. For those modes, upload the image to a publicly accessible URL first.
 
 For full parameter details, resolution mappings, and advanced usage, see [`references/seedance-2-0.md`](references/seedance-2-0.md).
