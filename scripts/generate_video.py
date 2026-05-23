@@ -12,6 +12,7 @@ Supports:
 """
 
 import argparse
+import base64
 import json
 import os
 import ssl
@@ -37,6 +38,8 @@ _ASPECT_RATIOS = {
     "4:3": (4, 3),
     "3:2": (3, 2),
     "2:3": (2, 3),
+    "3:4": (3, 4),
+    "21:9": (21, 9),
     "adaptive": (0, 0),
 }
 
@@ -69,7 +72,22 @@ def _resolve_size(resolution: str, aspect_ratio: str) -> tuple[int, int] | None:
     return width, height
 
 
-def _api_request(method: str, path: str, api_key: str, payload: dict | None = None, retries: int = 3) -> dict:
+def _local_to_data_uri(path: str) -> str:
+    """Read a local image file and return a data URI."""
+    ext = os.path.splitext(path)[1].lower()
+    mime = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "webp": "image/webp",
+        "gif": "image/gif",
+    }.get(ext, "image/png")
+    with open(path, "rb") as f:
+        data = base64.b64encode(f.read()).decode("ascii")
+    return f"data:{mime};base64,{data}"
+
+
+def _api_request(method: str, path: str, api_key: str, payload: dict | None = None, retries: int = 3, timeout: int = 60) -> dict:
     """Make an API request and return parsed JSON. Retries on transient SSL/network errors."""
     url = f"{BASE_URL}{path}"
     headers = {
@@ -83,7 +101,7 @@ def _api_request(method: str, path: str, api_key: str, payload: dict | None = No
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8")
@@ -204,8 +222,13 @@ def create_task(
     return_last_frame: bool = False,
     camera_fixed: bool = False,
     watermark: bool = False,
+    timeout: int = 60,
 ) -> dict:
     """Submit a video generation task and return the task info."""
+    # Convert local file paths to data URIs for --image
+    if image and not image.startswith(("http://", "https://", "data:")) and os.path.isfile(image):
+        image = _local_to_data_uri(image)
+
     content, use_metadata = _build_content(prompt, image, first_frame, last_frame, reference_images)
 
     payload: dict = {
@@ -256,15 +279,15 @@ def create_task(
         if watermark:
             payload["metadata"]["watermark"] = True
 
-    return _api_request("POST", "/v1/video/generations", api_key, payload)
+    return _api_request("POST", "/v1/video/generations", api_key, payload, timeout=timeout)
 
 
-def get_task_status(task_id: str, api_key: str) -> tuple[str, str | None, str | None, dict]:
+def get_task_status(task_id: str, api_key: str, timeout: int = 60) -> tuple[str, str | None, str | None, dict]:
     """Poll the status of a video generation task.
 
     Returns (status, video_url, last_frame_url, metadata).
     """
-    response = _api_request("GET", f"/v1/video/generations/{task_id}", api_key)
+    response = _api_request("GET", f"/v1/video/generations/{task_id}", api_key, timeout=timeout)
     return _extract_task_status(response)
 
 
@@ -301,6 +324,7 @@ def generate_video(
     poll_interval: int = 5,
     max_wait: int = 600,
     submit_only: bool = False,
+    timeout: int = 60,
 ) -> dict:
     """Generate a video: submit task, poll for completion, optionally download."""
     if api_key is None:
@@ -315,6 +339,7 @@ def generate_video(
         prompt, api_key, model, image, first_frame, last_frame,
         reference_images, duration, width, height, fps, seed,
         resolution, aspect_ratio, generate_audio, return_last_frame, camera_fixed, watermark,
+        timeout=timeout,
     )
     task_id = task.get("task_id")
     if not task_id:
@@ -389,7 +414,7 @@ def main() -> int:
     )
 
     # Image modes
-    parser.add_argument("--image", help="Reference image URL for image-to-video (first frame, backward compatible)")
+    parser.add_argument("--image", help="Reference image for image-to-video (first frame). URL, local file path, or data URI.")
     parser.add_argument("--first-frame", help="First frame image URL")
     parser.add_argument("--last-frame", help="Last frame image URL")
     parser.add_argument("--reference-image", action="append", dest="reference_images", help="Reference image URL for multimodal reference mode (can be used multiple times)")
@@ -424,6 +449,7 @@ def main() -> int:
     parser.add_argument("--submit-only", action="store_true", help="Submit task and return immediately without polling")
     parser.add_argument("--poll-interval", type=int, default=5, help="Seconds between status checks (default: 5)")
     parser.add_argument("--max-wait", type=int, default=600, help="Max seconds to wait for completion (default: 600)")
+    parser.add_argument("--timeout", type=int, default=60, help="HTTP request timeout in seconds. Increase for large image uploads (default: 60)")
     args = parser.parse_args()
 
     # Validate: cannot mix image modes
@@ -461,6 +487,7 @@ def main() -> int:
             poll_interval=args.poll_interval,
             max_wait=args.max_wait,
             submit_only=args.submit_only,
+            timeout=args.timeout,
         )
     except (ValueError, RuntimeError) as e:
         print(f"Error: {e}", file=sys.stderr)

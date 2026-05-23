@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://camo.githubusercontent.com/3e816c82f93843017c24bcc6cc25a3e8f6becd41c6435e39de4dbc11b0ca1485/68747470733a2f2f6173736574732e687970657273616d706c696e672e636f6d2f68797065722d73616d706c696e672d322e6a7067" alt="hyper-sampling" height="50"/>
+  <img src="https://assets.hypersampling.com/hyper-sampling-2.jpg" alt="hyper-sampling" height="50"/>
   &nbsp;&nbsp;&nbsp;
   <img src="https://raw.githubusercontent.com/kjx-talesofai/claude-skill-hypersampling/master/neta_logo.png" alt="neta.art" height="50"/>
 </p>

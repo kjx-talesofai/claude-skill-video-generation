@@ -76,16 +76,18 @@ The new-api router forwards the entire `metadata` object to BytePlus ModelArk. T
 
 The Python script maps these convenience flags to `width`/`height`:
 
-| Resolution | Pixels (16:9) | Pixels (9:16) | Pixels (1:1) |
-|---|---|---|---|
-| 480p | 854x480 | 480x854 | 480x480 |
-| 720p | 1280x720 | 720x1280 | 720x720 |
-| 1080p | 1920x1080 | 1080x1920 | 1080x1080 |
-| 2K | 2560x1440 | 1440x2560 | 1440x1440 |
+| Resolution | Pixels (16:9) | Pixels (9:16) | Pixels (1:1) | Pixels (21:9) |
+|---|---|---|---|---|
+| 480p | 854x480 | 480x854 | 480x480 | 1120x480 |
+| 720p | 1280x720 | 720x1280 | 720x720 | 1680x720 |
+| 1080p | 1920x1080 | 1080x1920 | 1080x1080 | 2520x1080 |
+| 2K | 2560x1440 | 1440x2560 | 1440x1440 | 3360x1440 |
 
-Supported aspect ratios: `16:9`, `9:16`, `1:1`, `4:3`, `3:2`, `2:3`, `adaptive`.
+Supported aspect ratios: `16:9`, `9:16`, `1:1`, `4:3`, `3:2`, `2:3`, `3:4`, `21:9`, `adaptive`.
 
 `adaptive` lets the model automatically select the most appropriate aspect ratio based on the input prompt or reference images. When using `adaptive`, the script does not send computed `width`/`height` — the native API handles sizing internally.
+
+> **Warning:** `adaptive` output ratios are not deterministic. Two prompts may yield different ratios (e.g., one produces 1280×720, another produces 1470×630). For multi-segment videos that need to be stitched together, always use a fixed ratio instead of `adaptive`.
 
 ### Parameter Passthrough
 
